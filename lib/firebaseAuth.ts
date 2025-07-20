@@ -20,7 +20,7 @@ export const signInWithGoogle = async () => {
 export const signInWithFacebook = async () => {
    const provider = new FacebookAuthProvider();
    await signInWithPopup(auth, provider);
-  
+
 }
 export const signInWithTwitter = async () => {
    const provider = new TwitterAuthProvider();

@@ -169,7 +169,9 @@ const { emailError, passwordError, error } = useAppSelector((state: RootState) =
           src="/login_img.jpeg" 
           alt="Login illustration" 
           fill
-          className="object-cover"
+          objectFit="cover"
+          objectPosition="center"
+          className="!w-full !h-full"
           sizes="(min-width: 640px) 50vw, 100vw"
           priority
         />

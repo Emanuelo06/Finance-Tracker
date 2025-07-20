@@ -1,4 +1,4 @@
-interface budget {
+export interface Budget {
    id: string,
    title: string,
    emoji: string,

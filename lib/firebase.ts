@@ -17,7 +17,6 @@ const firebaseConfig = {
   appId: "1:272089925985:web:7975966ef4d665ff98dd20",
   measurementId: "G-N8EDXPKF2E"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 // If you need analytics, use the following function in a client component only:

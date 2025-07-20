@@ -1,47 +1,93 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { addDoc } from "firebase/firestore";
 import { getTransactionsRef } from "@/lib/firestore";
-import { updateBudgetOnTransaction } from "@/lib/financeCalculations";
-import type { Transaction } from "@/lib/firestore";
-
-interface TransactionsState {
-  items: Transaction[];
-  status: "idle" | "loading" | "failed"
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { addDoc, collection, deleteDoc, doc,  } from "firebase/firestore";
+import { Transaction } from "@/lib/firestore";
+import { revertBudgetOnTransaction, updateBudgetOnTransaction } from "@/lib/financeCalculations";
+interface TransactionState {
+  data: Transaction[];
+  loading: boolean;
+  error: string | null;
 }
 
-const initialState: TransactionsState = {
-  items: [],
-  status: "idle",
-};
+const initialState: TransactionState = {
+  data: [],
+  loading: false,
+  error: null,
+}
 
 export const addTransaction = createAsyncThunk(
   "transactions/add",
-  async ({transaction, userId}:{transaction: Omit<Transaction, "Id">; userId: string }, {dispatch}) => {
-     const newRef = await addDoc(getTransactionsRef(userId), transaction);
-    
-    // 2. Create full transaction object WITH id
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: newRef.id  // Add id separately
-    };
-    
-    // 3. Update budget
-    await updateBudgetOnTransaction(newTransaction, userId);
-    
-    // 4. Return for Redux store
-    return newTransaction;
-  }
+    async (
+    { transaction, userId }: { transaction: Omit<Transaction, "id">; userId: string },
+    { dispatch }
+    ) => {
+      const newRef = await addDoc(getTransactionsRef(userId),transaction)
+
+      const newTransaction : Transaction = {
+        ...transaction,
+        id: newRef.id
+      };
+
+      await updateBudgetOnTransaction(newTransaction, userId);
+
+      return newTransaction
+    }
 );
 
-const transactionsSlice = createSlice({
+export const deleteTransaction =  createAsyncThunk(
+  "transactions/delete",
+  async (
+    {transaction, userId} : { transaction: Transaction; userId: string}
+  ) => {
+    const transactionRef = doc(getTransactionsRef(userId), transaction.id);
+    await deleteDoc(transactionRef);
+
+    await revertBudgetOnTransaction(transaction, userId);
+
+    return transaction.id
+  }
+)
+
+const transactionSlice = createSlice({
   name: "transactions",
   initialState,
-  reducers:{},
-  extraReducers: (builder) => {
-    builder.addCase(addTransaction.fulfilled, (state, action) => {
-      state.items.push(action.payload)
-    });
+  reducers: {
+    setTransactions(state, action: PayloadAction<Transaction[]>){
+      state.data = action.payload
+    }
   },
-});
+  extraReducers: (builder)=> {
+    builder
+      //add
+      .addCase(addTransaction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addTransaction.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data.push(action.payload);
+      })
+      .addCase(addTransaction.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to add transaction";
+      })
 
-export default transactionsSlice.reducer;
+      //delete
+      .addCase(deleteTransaction.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(deleteTransaction.fulfilled, (state, action) => {
+        state.data = state.data.filter(
+          (tx) => tx.id !== action.payload
+        );
+        state.loading = false
+      })
+
+      .addCase(deleteTransaction.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to delete transaction"
+      })
+  }
+});
+export const {setTransactions} = transactionSlice.actions
+export default transactionSlice.reducer;

@@ -1,6 +1,6 @@
 import { Budget, Transaction } from "@/lib/firestore";
 import { db } from "./firebase";
-import { getDoc, doc, updateDoc } from "firebase/firestore";
+import { getDoc, doc, updateDoc, collection, where, query, getDocs } from "firebase/firestore";
 
 export const calculateBalance = (transactions: Transaction[]) => {
    return transactions.reduce((total, t)=> 
@@ -20,10 +20,33 @@ export const updateBudgetOnTransaction = async (
    transaction: Transaction,
    userId: string
 ) => {
-   if(transaction.type !== "expense" || !transaction.budgetId) return;
+   const budgetsRef = collection(db, "users", userId,  "budgets");
+   const q = query(budgetsRef, where("category", "==", transaction.category))
+   const querySnapshot = await getDocs(q);
+   
+   if (querySnapshot.empty) return;
 
-   const budgetRef = doc(db, "users", userId, "budgets", transaction.budgetId);
-   await updateDoc(budgetRef, {
-      currentSpent: increment(transaction.amount)
-   })
+   const budgetDoc = querySnapshot.docs[0];
+   const data = budgetDoc.data();
+   const currentAmount = data.currentAmount || 0;
+
+   await updateDoc(budgetDoc.ref, {
+      currentAmount: currentAmount + transaction.amount,
+   });
 }
+
+export const  revertBudgetOnTransaction = async (transaction: Transaction, userId: string) => {
+   const budgetsRef = collection(db, "users", userId, "budgets");
+   const q = query(budgetsRef, where("category", "==", transaction.category));
+   const querySnapshot = await getDocs(q);
+
+   if(querySnapshot.empty) return;
+
+   const budgetDoc = querySnapshot.docs[0];
+   const data = budgetDoc.data();
+   const currentAmount = data.currentAmount || 0;
+
+   await updateDoc(budgetDoc.ref, {
+      currentAmount: Math.max(0, currentAmount - transaction.amount)
+   });
+};

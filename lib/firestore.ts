@@ -3,6 +3,7 @@ import { db } from "./firebase";
 export type TransactionType = "income" | "expense";
 export interface Transaction {
    id: string;
+   name: string
    amount: number;
    date: Date;
    type: TransactionType;
@@ -22,6 +23,5 @@ export interface Budget{
 }
 export const getTransactionsRef = (userId: string) =>
    collection(db, "users", userId, "transactions")
-
 export const getBudgetsRef = (userId: string) =>
    collection(db, "users", userId, "budgets");

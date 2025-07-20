@@ -1,6 +1,6 @@
 import { Timestamp } from "next/dist/server/lib/cache-handlers/types"
 
-interface transaction {
+interface Transaction {
    id: string,
    amount: number,
    date: Timestamp | string,
@@ -10,4 +10,4 @@ interface transaction {
    budgetId?: string
 }
 
-export type { transaction}
+export type { Transaction}

@@ -1,8 +1,14 @@
+import Navbar from '@/components/Navbar'
 import React from 'react'
 
 const page = () => {
   return (
-    <div>page</div>
+    <div className='min-h-screen bg-gray-100 flex flex-col'>
+      <Navbar/>
+      <form>
+        
+      </form>
+    </div>
   )
 }
 
