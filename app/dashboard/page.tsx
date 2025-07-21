@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { calculateBalance, getDailyChange, get30DayChange } from "@/lib/financeCalculations";
@@ -14,6 +14,8 @@ import { Transaction } from "@/lib/firestore";
 export default function Dashboard() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const transactions = useAppSelector((state) => state.transactions);
 
   async function fetchData(uid: string) {
     const { getFirestore, collection, getDocs } = await import("firebase/firestore");
@@ -50,12 +52,25 @@ export default function Dashboard() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         fetchData(user.uid);
+        setAuthChecked(true);
+      } else {
+        setAuthChecked(true);
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
-  const transactions = useAppSelector((state) => state.transactions);
+  
+  if (!authChecked) {
+    return <div className="min-h-screen flex items-center justify-center text-lg text-gray-500">Loading...</div>;
+  }
+  if (authChecked && !auth.currentUser) {
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
+    return null;
+  }
+
   const convertedTransactions = transactions.data.map(t => ({
     ...t,
     date: t.date ? new Date(t.date) : new Date(),
@@ -67,10 +82,10 @@ export default function Dashboard() {
   const dailyColor = daily === 0 ? "text-[#0038A9]" : daily < 0 ? "text-[#E03A3A]" : "text-[#1CB351]";
   const monthlyColor = monthly === 0 ? "text-[#0038A9]" : monthly < 0 ? "text-[#E03A3A]" : "text-[#1CB351]";
 
-const sortedTransactions: Transaction[] = [...transactions.data].sort( 
-  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-);
-const lastFiveTransactions: Transaction[] = sortedTransactions.slice(0, 5);
+  const sortedTransactions: Transaction[] = [...transactions.data].sort( 
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const lastFiveTransactions: Transaction[] = sortedTransactions.slice(0, 5);
 
   return (
     <>
