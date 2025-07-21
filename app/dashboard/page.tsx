@@ -166,7 +166,6 @@ const lastFiveTransactions: Transaction[] = sortedTransactions.slice(0, 5);
                             const { getFirestore, doc, deleteDoc } = await import('firebase/firestore');
                             const db = getFirestore();
                             await deleteDoc(doc(db, 'users', tx.userId, 'transactions', tx.id));
-                            window.location.reload();
                           }}
                           className="text-red-500 hover:text-red-700 focus:outline-none hover:cursor-pointer flex items-center justify-center"
                         >
