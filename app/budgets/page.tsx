@@ -90,7 +90,6 @@ const BudgetsPage = () => {
                 key={budget.id}
                 emoji={budget.emoji}
                 title={budget.title}
-                category={budget.category}
                 limit={budget.limit}
                 spent={getSpent(budget)}
                 onEdit={() => router.push(`/addBudget?id=${budget.id}`)}

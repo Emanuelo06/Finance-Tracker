@@ -3,7 +3,6 @@ import React from "react";
 interface BudgetCardProps {
   emoji: string;
   title: string;
-  category: string;
   limit: number;
   spent: number;
   onEdit?: () => void;
@@ -43,7 +42,6 @@ const getTextColor = (title: string) => {
 const BudgetCard: React.FC<BudgetCardProps> = ({
   emoji,
   title,
-  category,
   limit,
   spent,
   onEdit,

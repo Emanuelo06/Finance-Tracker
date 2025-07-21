@@ -6,10 +6,19 @@ dayjs.extend(isBetween);
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 
 
+interface Transaction {
+  id: string;
+  name: string;
+  amount: number;
+  date: string | Date;
+  type: "income" | "expense";
+  category: string;
+}
+
 function BalanceGraph() {
   const [selectedPeriod, setSelectedPeriod] = useState("30days");
-  const [chartsData, setChartsData] = useState<any[]>([]);
-  const [xTickFormatter, setXTickFormatter] = useState<(value: string) => string>(() => (value: any) => value);
+  const [chartsData, setChartsData] = useState<Record<string, unknown>[]>([]);
+  const [xTickFormatter, setXTickFormatter] = useState<(value: string) => string>(() => (value: string) => value);
   const transactions = useAppSelector((state) => state.transactions.data);
 
   useEffect(() => {
@@ -17,7 +26,8 @@ function BalanceGraph() {
       setChartsData([]);
       return;
     }
-    let filtered = transactions.map(t => ({
+
+    let filtered: Transaction[] = transactions.map((t: any) => ({
       ...t,
       date: t.date ? new Date(t.date) : new Date(),
     }));
@@ -27,30 +37,37 @@ function BalanceGraph() {
       // Only today, group by 2-hour intervals
       const start = now.startOf("day");
       const end = now.endOf("day");
-      filtered = filtered.filter(t => dayjs(t.date).isBetween(start, end, null, "[]"));
+      filtered = filtered.filter((t: Transaction) => dayjs(t.date).isBetween(start, end, null, "[]"));
       const map: Record<string, { income: number; expense: number }> = {};
-      filtered.forEach((tx) => {
-        // Group by 2-hour interval
-        const hour = dayjs(tx.date).hour();
-        const twoHour = Math.floor(hour / 2) * 2;
-        const intervalKey = dayjs(tx.date).set('hour', twoHour).minute(0).second(0).format("HH:00");
-        if (!map[intervalKey]) map[intervalKey] = { income: 0, expense: 0 };
-        if (tx.type === "income") map[intervalKey].income += tx.amount;
-        else map[intervalKey].expense += tx.amount;
+      filtered.forEach((tx: Transaction) => {
+      // Group by 2-hour interval
+      const hour = dayjs(tx.date).hour();
+      const twoHour = Math.floor(hour / 2) * 2;
+      const intervalKey = dayjs(tx.date).set('hour', twoHour).minute(0).second(0).format("HH:00");
+      if (!map[intervalKey]) map[intervalKey] = { income: 0, expense: 0 };
+      if (tx.type === "income") map[intervalKey].income += tx.amount;
+      else map[intervalKey].expense += tx.amount;
       });
       // Generate all 2-hour intervals
-      let intervals: string[] = [];
+      const intervals: string[] = [];
       let d = start;
       while (d.isBefore(end) || d.isSame(end)) {
-        intervals.push(d.format("HH:00"));
-        d = d.add(2, "hour");
+      intervals.push(d.format("HH:00"));
+      d = d.add(2, "hour");
       }
       chart = intervals.map(interval => ({
-        interval,
-        income: map[interval]?.income || 0,
-        expense: map[interval]?.expense || 0,
+      interval,
+      income: map[interval]?.income || 0,
+      expense: map[interval]?.expense || 0,
       }));
-      setXTickFormatter(() => (value: any) => value);
+      setXTickFormatter(() => (value: string) => value);
+    } else if (selectedPeriod === "7days") {
+      // Last 7 days, group by day
+      const start = now.subtract(6, "day").startOf("day");
+      const end = now.endOf("day");
+      filtered = filtered.filter((t: Transaction) => dayjs(t.date).isBetween(start, end, null, "[]"));
+      const map: Record<string, { income: number; expense: number }> = {};
+      setXTickFormatter(() => (value: string) => value);
     } else if (selectedPeriod === "7days") {
       // Last 7 days, group by day
       const start = now.subtract(6, "day").startOf("day");
@@ -63,7 +80,7 @@ function BalanceGraph() {
         if (tx.type === "income") map[dataKey].income += tx.amount;
         else map[dataKey].expense += tx.amount;
       });
-      let days: string[] = [];
+      const days: string[] = [];
       let d = start;
       while (d.isBefore(end) || d.isSame(end)) {
         days.push(d.format("YYYY-MM-DD"));
@@ -74,7 +91,7 @@ function BalanceGraph() {
         income: map[date]?.income || 0,
         expense: map[date]?.expense || 0,
       }));
-      setXTickFormatter(() => (value: any) => dayjs(value).format("MMM D"));
+      setXTickFormatter(() => (value: string) => dayjs(value).format("MMM D"));
     } else if (selectedPeriod === "30days") {
       // Last 30 days, group by week
       const start = now.subtract(29, "day").startOf("day");
@@ -87,7 +104,7 @@ function BalanceGraph() {
         if (tx.type === "income") weekMap[weekStart].income += tx.amount;
         else weekMap[weekStart].expense += tx.amount;
       });
-      let weeks: string[] = [];
+      const weeks: string[] = [];
       let d = start;
       const last = end;
       while (d.isBefore(last)) {
@@ -99,7 +116,7 @@ function BalanceGraph() {
         income: weekMap[week]?.income || 0,
         expense: weekMap[week]?.expense || 0,
       }));
-      setXTickFormatter(() => (value: any) => dayjs(value).format("MMM D"));
+      setXTickFormatter(() => (value: string) => dayjs(value).format("MMM D"));
     } else if (selectedPeriod === "all") {
       // All time, group by month
       const map: Record<string, { income: number; expense: number }> = {};
@@ -110,10 +127,10 @@ function BalanceGraph() {
         else map[monthKey].expense += tx.amount;
       });
       // Get all months from first to last transaction
-      let months: string[] = [];
+      const months: string[] = [];
       if (filtered.length > 0) {
         let first = dayjs(filtered[0].date).startOf("month");
-        let last = dayjs(filtered[filtered.length - 1].date).startOf("month");
+        const last = dayjs(filtered[filtered.length - 1].date).startOf("month");
         while (first.isBefore(last) || first.isSame(last)) {
           months.push(first.format("YYYY-MM"));
           first = first.add(1, "month");
@@ -124,7 +141,7 @@ function BalanceGraph() {
         income: map[month]?.income || 0,
         expense: map[month]?.expense || 0,
       }));
-      setXTickFormatter(() => (value: any) => dayjs(value).format("MMM YYYY"));
+      setXTickFormatter(() => (value: string) => dayjs(value).format("MMM YYYY"));
     }
     setChartsData(chart);
   }, [selectedPeriod, transactions]);

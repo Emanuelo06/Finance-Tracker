@@ -1,4 +1,4 @@
-import {collection, doc, getFirestore} from "firebase/firestore";
+import {collection} from "firebase/firestore";
 import { db } from "./firebase";
 export type TransactionType = "income" | "expense";
 export interface Transaction {
