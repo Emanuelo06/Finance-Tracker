@@ -1,9 +1,27 @@
-import React from 'react'
+"use client";
+import React, { useEffect } from 'react';
+import { useAppSelector } from '@/hooks/hooks';
+import { useRouter } from 'next/navigation';
 
-const ProtectedRoute = () => {
-  return (
-    <div>ProtectedRoute</div>
-  )
+interface ProtectedRouteProps {
+  children: React.ReactNode;
 }
 
-export default ProtectedRoute
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const user = useAppSelector((state) => state.auth.user);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user === null) {
+      router.replace('/');
+    }
+  }, [user, router]);
+
+  if (user === null) {
+    return null;
+  }
+
+  return <>{children}</>;
+};
+
+export default ProtectedRoute;
